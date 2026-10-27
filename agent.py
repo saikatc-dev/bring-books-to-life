@@ -6,6 +6,7 @@ REMEMBERS the conversation via a LangGraph checkpointer (thread_id per session).
 
 Needs a free Groq API key as GROQ_API_KEY (see .env.example).
 """
+
 from __future__ import annotations
 
 import os
@@ -44,13 +45,16 @@ def _system(persona) -> str:
     # NOTE: describe the book-search in prose, never as tool_name(args) — that keeps
     # Groq/Llama from emitting a malformed tool call (the Week-1 lesson).
     return (
-        f"You are {persona.name}, speaking in the first person, fully in character.\n"
+        f"Your identity is {persona.name}. Speak in the first person, fully in character. "
+        "Do not impersonate Sherlock Holmes or any other person mentioned in the source. "
+        "The source may describe several characters; use it for relevant facts, but do not "
+        "adopt another character's identity, voice, experiences, or habits.\n"
         f"Voice: {persona.voice}\n\n"
         "You have the source book about you. Whenever you need a fact, quote, or detail "
         "about yourself, other characters, or events, look it up in the book before you "
-        "answer, so everything you say is true to the book. Never invent facts that "
-        "contradict it; if the book does not cover something, say so in character rather "
-        "than making it up.\n\n"
+        "answer, so everything you say is true to the book. Do not present unsupported "
+        "details as facts; if the book does not cover something, say so in character "
+        "rather than making it up.\n\n"
         "Stay in character at all times. Never say you are an AI or a model, and never "
         "mention searching or retrieving — simply speak as yourself. Keep replies natural "
         "and conversational, a few sentences unless asked for more."
@@ -60,21 +64,33 @@ def _system(persona) -> str:
 class BookChat:
     """One in-character conversation. Remembers previous turns (checkpointer + thread_id)."""
 
-    def __init__(self, persona_key: str = DEFAULT, source_text: str | None = None,
-                 thread_id: str = "session"):
+    def __init__(
+        self,
+        persona_key: str = DEFAULT,
+        source_text: str | None = None,
+        thread_id: str = "session",
+    ):
         self.persona = PERSONAS[persona_key]
-        retriever = (retriever_from_text(source_text) if source_text
-                     else build_retriever(self.persona.source_path))
+        retriever = (
+            retriever_from_text(source_text)
+            if source_text
+            else build_retriever(self.persona.source_path)
+        )
         self.agent = create_agent(
-            _llm(), [make_search_tool(retriever)],
-            system_prompt=_system(self.persona), checkpointer=InMemorySaver(),
+            _llm(),
+            [make_search_tool(retriever)],
+            system_prompt=_system(self.persona),
+            checkpointer=InMemorySaver(),
         )
         self.thread_id = thread_id
 
     def say(self, message: str, verbose: bool = False) -> str:
         result = self.agent.invoke(
             {"messages": [("user", message)]},
-            config={"configurable": {"thread_id": self.thread_id}, "recursion_limit": 12},
+            config={
+                "configurable": {"thread_id": self.thread_id},
+                "recursion_limit": 12,
+            },
         )
         messages = result["messages"]
         if verbose:
@@ -88,7 +104,9 @@ def _print_trace(messages) -> None:
         tcs = getattr(m, "tool_calls", None)
         if tcs:
             for tc in tcs:
-                print(f"  · {role} → searches the book: {tc['args'].get('query', '')!r}")
+                print(
+                    f"  · {role} -> searches the book: {tc['args'].get('query', '')!r}"
+                )
         elif role == "TOOL":
             snippet = str(m.content).replace("\n", " ")[:110]
             print(f"  · retrieved: {snippet}…")

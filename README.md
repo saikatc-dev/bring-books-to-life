@@ -1,49 +1,97 @@
-# Bring Books to Life 🎭
+# Bring Books to Life
 
-The Week 2 project for **Agentic AI for Developers**. Chat with a character from a book —
-they stay **in character**, answer **grounded in the text** (Agentic RAG), and **remember**
-your conversation.
+## What is this project?
 
-Built with **LangGraph** + **Groq** (free tier). Embeddings are **local & free** (fastembed) —
-Groq has no embeddings API, so retrieval runs entirely on your machine. Ships with a
-public-domain **Sherlock Holmes** source; upload any `.txt` to ground the current character in a
-new source (keeps their persona). For a genuinely new character, add a `Persona` in `personas.py`.
+Bring Books to Life lets you have a conversation with a character from a book. It currently comes with Sherlock Holmes and Professor James Moriarty, his adversary. Ask either character questions and they reply in character, using details from the book rather than making up book-related facts.
 
-## What it demonstrates (Week 2 skills)
-- **Agentic RAG** — the agent *decides when* to search the book (a retrieval tool), not a fixed pipeline
-- **Just-enough RAG** — chunk → embed → FAISS vector store → top-k retrieval
-- **Memory** — a LangGraph checkpointer (thread per session) so it remembers earlier turns
-- **Grounding** — the persona answers from retrieved passages and stays true to canon
+You can use the chat in a web page or in a terminal. Choose a character in the web app, or pass their name when starting a terminal chat. The web page also lets you upload a `.txt` file so the selected character can answer using a different text while keeping their personality.
 
-## Setup
-```bash
-python3 -m venv .venv && source .venv/bin/activate
+## What it can do
+
+- **Chat as a book character:** The character responds in their own voice.
+- **Look up details in the book:** When it needs information about the story, the AI searches relevant passages before replying. If the text does not contain an answer, it should say so rather than inventing one.
+- **Remember the current conversation:** It can refer to earlier messages while the conversation is open. This memory is temporary and is cleared when you reset or restart the chat.
+- **Use your own text:** Upload a plain text `.txt` file in the web app. This changes the source text for the current character, not the character's personality.
+- **Run book search locally:** The text-search model runs on your computer. It downloads a small model the first time you use it; no separate embedding API key is needed.
+
+## What you need
+
+- Python 3.12
+- A Groq API key for AI replies. Create one at [Groq Console](https://console.groq.com/keys).
+- An internet connection for the first setup, to install packages and download the local text-search model.
+
+## Set up on Windows
+
+Open PowerShell in this project folder and run:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-cp .env.example .env      # then paste your free Groq key from https://console.groq.com/keys
+Copy-Item .env.example .env
 ```
 
-## Run
-```bash
-python test_offline.py    # RAG sanity check (no key; first run downloads a small embed model)
+Open the new `.env` file and replace `your-free-groq-key-here` with your Groq API key. Keep the key private.
 
-python run.py --demo      # scripted 4-turn convo — shows retrieval + memory
-python run.py sherlock -v # interactive chat; -v shows when the character searches the book
-streamlit run app.py      # the chat UI (with a book uploader)
+If PowerShell prevents activation, you can still use the environment's Python directly:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Files
-| File | Role |
-|------|------|
-| `sources/` | The book(s) — plain text. Ships with public-domain Sherlock Holmes. |
-| `personas.py` | Character definitions (name, source, voice) |
-| `rag.py` | Chunk + embed (local fastembed) + FAISS retriever |
-| `tools.py` | The `search_book` tool the agent calls (Agentic RAG) |
-| `agent.py` | LangGraph ReAct agent on Groq + memory (`BookChat`) |
-| `run.py` | CLI (interactive + `--demo`) |
-| `app.py` | Streamlit chat UI |
-| `test_offline.py` | Offline RAG/tool tests |
+## Start the project
 
-## Notes
-- **Embeddings are local** (fastembed, ONNX) — no embedding key, runs offline after the one-time model download.
-- Swap the book by uploading a `.txt` in the UI, or add a `Persona` in `personas.py`.
+For the web chat:
+
+```powershell
+streamlit run app.py
+```
+
+For a terminal chat:
+
+```powershell
+python run.py
+```
+
+To chat with Professor Moriarty instead:
+
+```powershell
+python run.py moriarty
+```
+
+To run a sample conversation in the terminal:
+
+```powershell
+python run.py --demo
+```
+
+To check that book search works without using a Groq API key:
+
+```powershell
+python test_offline.py
+```
+
+The first offline test run may take longer because it downloads the text-search model.
+
+## How it works, in simple terms
+
+1. The project splits the book into small passages and prepares them for searching on your computer.
+2. You ask a question.
+3. The AI decides whether it needs to look up something in the book, then searches for relevant passages.
+4. It uses those passages and the character's description to write a reply.
+
+## Project files
+
+| File or folder | What it is for |
+|---|---|
+| `app.py` | The web chat and text-file uploader |
+| `run.py` | The terminal chat and sample conversation |
+| `agent.py` | Connects the AI, character instructions, book search, and conversation memory |
+| `personas.py` | Defines the available characters and their speaking styles |
+| `rag.py` | Prepares book text and searches for relevant passages |
+| `tools.py` | Gives the AI a way to search the book |
+| `sources/` | Book text files; includes the Sherlock Holmes source |
+| `test_offline.py` | Checks book search without making AI chat requests |
+| `requirements.txt` | The Python packages needed to run the project |
+
+To add another character, add their book text under `sources/` and define the character in `personas.py`.

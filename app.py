@@ -16,13 +16,15 @@ with st.sidebar:
     key = st.selectbox("Character", list(PERSONAS), format_func=lambda k: PERSONAS[k].name,
                        index=list(PERSONAS).index(DEFAULT))
     uploaded = st.file_uploader("Ground this character in your own source (.txt) — keeps their persona", type=["txt"])
-    if st.button("Start / reset conversation", type="primary"):
-        src = uploaded.read().decode("utf-8", "ignore") if uploaded else None
-        st.session_state.chat = BookChat(key, source_text=src)
-        st.session_state.history = []
+    reset_requested = st.button("Start / reset conversation", type="primary")
 
-if "chat" not in st.session_state:
-    st.session_state.chat = BookChat(DEFAULT)
+switch_requested = (
+    "chat" not in st.session_state
+    or st.session_state.chat.persona.key != key
+)
+if reset_requested or switch_requested:
+    src = uploaded.getvalue().decode("utf-8", "ignore") if uploaded else None
+    st.session_state.chat = BookChat(key, source_text=src)
     st.session_state.history = []
 
 for role, text in st.session_state.history:

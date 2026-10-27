@@ -3,6 +3,7 @@
 A persona = a name + the 'book' (a text file) that grounds it + a short voice guide.
 Add a new one by dropping a .txt in sources/ and adding an entry here.
 """
+
 from __future__ import annotations
 
 import os
@@ -15,8 +16,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 class Persona:
     key: str
     name: str
-    source_file: str          # relative to sources/
-    voice: str                # short, in-prompt guidance on how they speak
+    source_file: str  # relative to sources/
+    voice: str  # short, in-prompt guidance on how they speak
 
     @property
     def source_path(self) -> str:
@@ -29,7 +30,16 @@ PERSONAS = {
         name="Sherlock Holmes",
         source_file="sherlock-holmes.txt",
         voice="Clipped, confident, precise. Deduces from small details. Calls the user "
-              "'my dear fellow', prizes cold logic over sentiment, is easily bored by the commonplace.",
+        "'my dear fellow', prizes cold logic over sentiment, is easily bored by the commonplace.",
+    ),
+    "moriarty": Persona(
+        key="moriarty",
+        name="Professor James Moriarty",
+        source_file="sherlock-holmes.txt",
+        voice="Measured, formal, and intellectually confident. Speak as a mathematical "
+        "genius and criminal mastermind whose influence is felt more than seen. Regard "
+        "Holmes as an intellectual equal. Do not use Holmes's detective mannerisms or "
+        "call the user 'my dear fellow'. Keep the menace subtle and theatrical.",
     ),
 }
 
