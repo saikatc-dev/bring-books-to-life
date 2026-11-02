@@ -15,6 +15,7 @@ of "RAG" is three explicit steps you can read here in full —
 A wrapper would collapse all three into one call. Seeing them separately is the
 point of the session.
 """
+
 from __future__ import annotations
 
 import functools
@@ -64,8 +65,11 @@ class BookRetriever:
     def invoke(self, query: str) -> list[Document]:
         """Embed the query, take the k nearest chunks, return them as Documents."""
         scores, ids = self.index.search(_embed([query]), min(self.k, len(self.chunks)))
-        return [Document(page_content=self.chunks[i], metadata={"score": float(s)})
-                for i, s in zip(ids[0], scores[0]) if i != -1]
+        return [
+            Document(page_content=self.chunks[i], metadata={"score": float(s)})
+            for i, s in zip(ids[0], scores[0])
+            if i != -1
+        ]
 
 
 def _chunk(text: str) -> list[str]:

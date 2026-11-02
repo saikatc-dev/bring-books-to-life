@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-Bring Books to Life lets you have a conversation with a character from a book. It currently comes with Sherlock Holmes and Professor James Moriarty, his adversary. Ask either character questions and they reply in character, using details from the book rather than making up book-related facts.
+Bring Books to Life lets you have a conversation with a character from a book. It currently comes with Sherlock Holmes, Dr. John Watson, and Professor James Moriarty, his adversary. Ask a character questions and they reply in character, using details from the source text rather than making up book-related facts.
 
 You can use the chat in a web page or in a terminal. Choose a character in the web app, or pass their name when starting a terminal chat. The web page also lets you upload a `.txt` file so the selected character can answer using a different text while keeping their personality.
 
@@ -12,6 +12,7 @@ You can use the chat in a web page or in a terminal. Choose a character in the w
 - **Look up details in the book:** When it needs information about the story, the AI searches relevant passages before replying. If the text does not contain an answer, it should say so rather than inventing one.
 - **Remember the current conversation:** It can refer to earlier messages while the conversation is open. This memory is temporary and is cleared when you reset or restart the chat.
 - **Use your own text:** Upload a plain text `.txt` file in the web app. This changes the source text for the current character, not the character's personality.
+- **Switch sources while chatting:** Selecting or removing an uploaded file rebuilds the retriever and starts a fresh conversation, so the new source is used without mixing in the old chat context.
 - **Run book search locally:** The text-search model runs on your computer. It downloads a small model the first time you use it; no separate embedding API key is needed.
 
 ## What you need
@@ -73,6 +74,21 @@ python test_offline.py
 
 The first offline test run may take longer because it downloads the text-search model.
 
+To test model-error messages without an API key:
+
+```powershell
+python test_error_handling.py
+```
+
+## Troubleshooting model errors
+
+Bookchat displays a helpful assistant message if a model request fails. If the
+Groq API key is invalid or expired, replace `GROQ_API_KEY` in `.env` with a
+valid key and restart the app. For rate limits, wait before retrying. If the
+conversation exceeds the model's token context limit, reset the conversation
+and ask a shorter question. A missing model or access error may require checking
+the `GROQ_MODEL` setting and API key permissions.
+
 ## How it works, in simple terms
 
 1. The project splits the book into small passages and prepares them for searching on your computer.
@@ -92,6 +108,7 @@ The first offline test run may take longer because it downloads the text-search 
 | `tools.py` | Gives the AI a way to search the book |
 | `sources/` | Book text files; includes the Sherlock Holmes source |
 | `test_offline.py` | Checks book search without making AI chat requests |
+| `test_error_handling.py` | Checks model API error messages without making API requests |
 | `requirements.txt` | The Python packages needed to run the project |
 
 To add another character, add their book text under `sources/` and define the character in `personas.py`.

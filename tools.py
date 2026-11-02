@@ -4,6 +4,7 @@ The agent (in character) decides when it needs canon details and calls search_bo
 the retriever returns the most relevant passages, which the agent then reasons over.
 That "the agent chooses when to retrieve" is the difference from plain RAG.
 """
+
 from __future__ import annotations
 
 from langchain_core.tools import tool
