@@ -1,7 +1,7 @@
 """Bring Books to Life — the agent.
 
 A LangGraph ReAct agent (on Groq) that plays a character grounded in an uploaded
-book. It decides when to search the book (Agentic RAG), stays in canon, and
+book. It decides when to search the book (Agentic RAG), stays in character, and
 REMEMBERS the conversation via a LangGraph checkpointer (thread_id per session).
 
 Needs a free Groq API key as GROQ_API_KEY (see .env.example).
@@ -37,16 +37,15 @@ load_dotenv(find_dotenv(usecwd=True))
 logger = logging.getLogger(__name__)
 
 # openai/gpt-oss-120b does the cleanest structured tool-calling on Groq for this
-# chat+retrieval pattern. Tested on this workload, not assumed — re-test if you
-# swap models: reliability here is task-specific, not a league table.
+# chat+retrieval pattern.
 # Lighter option: GROQ_MODEL=openai/gpt-oss-20b
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 
 # max_retries: the free Groq tier allows 8000 tokens per MINUTE, and this agent's
 # context grows with every tool call — by the later steps a single request is ~4k,
-# so two of them inside one minute trips the limit on a single run, with nobody
-# else on your key. langchain-groq defaults to 2 retries, which is not enough for
+# so two of them inside one minute trips the limit on a single run.
+# langchain-groq defaults to 2 retries, which is not enough for
 # a long run; the Groq SDK honours the retry-after header, so raising this simply
 # waits out the window instead of failing the whole run.
 def _llm(temperature: float = 0.3) -> ChatGroq:
@@ -57,7 +56,7 @@ def _llm(temperature: float = 0.3) -> ChatGroq:
 
 def _system(persona) -> str:
     # NOTE: describe the book-search in prose, never as tool_name(args) — that keeps
-    # Groq/Llama from emitting a malformed tool call (the Week-1 lesson).
+    # Groq/Llama from emitting a malformed tool call.
     return (
         f"Your identity is {persona.name}. Speak in the first person, fully in character. "
         "Do not impersonate Sherlock Holmes or any other person mentioned in the source. "

@@ -12,8 +12,7 @@ of "RAG" is three explicit steps you can read here in full —
     2. index the vectors  (faiss     -> a searchable index)
     3. embed the query and take the top k nearest  (faiss.search)
 
-A wrapper would collapse all three into one call. Seeing them separately is the
-point of the session.
+A wrapper would collapse all three into one call.
 """
 
 from __future__ import annotations
