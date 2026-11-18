@@ -21,7 +21,7 @@ def make_search_tool(retriever):
         characters, or events — so your answer stays true to the book. Pass a short
         topic or question as the query.
         """
-        docs = retriever.invoke(query)
+        docs = retriever.similarity_search(query)
         if not docs:
             return "No relevant passages found in the book."
         return "\n\n---\n\n".join(d.page_content for d in docs)

@@ -24,9 +24,10 @@ from groq import (
     PermissionDeniedError,
     RateLimitError,
 )
-from langchain_groq import ChatGroq
-from langgraph.checkpoint.memory import InMemorySaver
 from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
+from langgraph.checkpoint.memory import InMemorySaver
 
 from personas import PERSONAS, DEFAULT
 from rag import build_retriever, retriever_from_text
@@ -48,10 +49,15 @@ MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 # langchain-groq defaults to 2 retries, which is not enough for
 # a long run; the Groq SDK honours the retry-after header, so raising this simply
 # waits out the window instead of failing the whole run.
-def _llm(temperature: float = 0.3) -> ChatGroq:
+def _llm(temperature: float = 0.3) -> BaseChatModel:
     # low-ish temperature: enough character warmth, while keeping tool-calling
     # and the persona stable across turns.
-    return ChatGroq(model=MODEL, temperature=temperature, max_retries=8)
+    return init_chat_model(
+        model=MODEL,
+        model_provider="groq",
+        temperature=temperature,
+        max_retries=8,
+    )
 
 
 def _system(persona) -> str:

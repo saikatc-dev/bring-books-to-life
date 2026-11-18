@@ -21,7 +21,9 @@ from agent import BookChat
 def _status_error(error_type, status_code: int, body: dict) -> Exception:
     response = httpx.Response(
         status_code,
-        request=httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions"),
+        request=httpx.Request(
+            "POST", "https://api.groq.com/openai/v1/chat/completions"
+        ),
     )
     return error_type(
         "request failed",
@@ -74,7 +76,9 @@ class BookChatErrorHandlingTests(unittest.TestCase):
         self.assertIn("wait", reply)
 
     def test_other_common_model_failures_are_explained(self) -> None:
-        request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+        request = httpx.Request(
+            "POST", "https://api.groq.com/openai/v1/chat/completions"
+        )
         errors_and_messages = (
             (
                 _status_error(NotFoundError, 404, {}),

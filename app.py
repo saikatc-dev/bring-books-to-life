@@ -30,7 +30,9 @@ with st.sidebar:
     )
     uploaded_bytes = uploaded.getvalue() if uploaded else None
     if uploaded is not None and not uploaded_bytes:
-        st.warning("The uploaded text file is empty; using the character's default source.")
+        st.warning(
+            "The uploaded text file is empty; using the character's default source."
+        )
     if uploaded_bytes:
         try:
             src = uploaded_bytes.decode("utf-8-sig")

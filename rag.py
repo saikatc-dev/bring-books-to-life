@@ -4,25 +4,20 @@ Embeddings are LOCAL and FREE (fastembed — a small ONNX model, downloaded once
 no API key), so this runs offline. Groq has no embeddings API, so the retrieval
 layer lives entirely here; Groq is only the LLM (see agent.py).
 
-We talk to fastembed and faiss DIRECTLY rather than through a wrapper library.
-That is deliberate, and it is the thing to understand about this file: the whole
-of "RAG" is three explicit steps you can read here in full —
-
-    1. embed the chunks   (fastembed -> vectors)
-    2. index the vectors  (faiss     -> a searchable index)
-    3. embed the query and take the top k nearest  (faiss.search)
-
-A wrapper would collapse all three into one call.
+LangChain's FAISS vector-store wrapper handles embedding conversion, indexing,
+and similarity search while this module keeps the local model and chunking
+choices explicit.
 """
 
 from __future__ import annotations
 
 import functools
 
-import faiss
-import numpy as np
 from fastembed import TextEmbedding
+from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores.utils import DistanceStrategy
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 MODEL_NAME = "BAAI/bge-small-en-v1.5"
@@ -34,41 +29,43 @@ def _embedder() -> TextEmbedding:
     return TextEmbedding(model_name=MODEL_NAME)
 
 
-def _embed(texts: list[str]) -> np.ndarray:
-    """Embed texts and L2-normalise them.
+class _BookEmbeddings(Embeddings):
+    """Adapt the existing local FastEmbed model to LangChain's interface."""
 
-    Normalising matters: bge models are trained for COSINE similarity, and a
-    dot product over unit-length vectors is exactly cosine. That is why the
-    index below uses inner product (IndexFlatIP) rather than raw L2 distance —
-    on unnormalised vectors the two disagree and you get different neighbours.
-    """
-    vecs = np.array(list(_embedder().embed(texts)), dtype="float32")
-    faiss.normalize_L2(vecs)
-    return vecs
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [vector.tolist() for vector in _embedder().embed(texts)]
+
+    def embed_query(self, text: str) -> list[float]:
+        return next(_embedder().embed([text])).tolist()
 
 
 class BookRetriever:
-    """A tiny top-k retriever over a FAISS index. Same surface the agent expects:
-    `.invoke(query)` returns a list of Documents with `.page_content`."""
+    """A top-k retriever backed by LangChain's FAISS vector-store wrapper."""
 
     def __init__(self, chunks: list[str], k: int = 4):
         self.chunks = chunks
         self.k = k
-        vecs = _embed(chunks)
-        # IndexFlatIP = exact (not approximate) inner-product search. "Flat"
-        # means it compares against every vector — perfect recall, and plenty
-        # fast for a book-sized corpus.
-        self.index = faiss.IndexFlatIP(vecs.shape[1])
-        self.index.add(vecs)
+        self.store = FAISS.from_texts(
+            texts=chunks,
+            embedding=_BookEmbeddings(),
+            normalize_L2=True,  # Unit vectors make L2 ranking equivalent to cosine similarity.
+            distance_strategy=DistanceStrategy.EUCLIDEAN_DISTANCE,
+        )
+
+    def similarity_search(self, query: str) -> list[Document]:
+        """Return the k most similar chunks, including their cosine score."""
+        results = self.store.similarity_search_with_score(
+            query, k=min(self.k, len(self.chunks))
+        )
+        documents = []
+        for document, distance in results:
+            document.metadata["score"] = 1.0 - float(distance) / 2.0
+            documents.append(document)
+        return documents
 
     def invoke(self, query: str) -> list[Document]:
-        """Embed the query, take the k nearest chunks, return them as Documents."""
-        scores, ids = self.index.search(_embed([query]), min(self.k, len(self.chunks)))
-        return [
-            Document(page_content=self.chunks[i], metadata={"score": float(s)})
-            for i, s in zip(ids[0], scores[0])
-            if i != -1
-        ]
+        """Compatibility method for existing retriever callers."""
+        return self.similarity_search(query)
 
 
 def _chunk(text: str) -> list[str]:
